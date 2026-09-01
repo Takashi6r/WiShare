@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiShare — Local Sharing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">↗</div>
+        <div>
+          <h1>WiShare</h1>
+          <p>Share instantly on your local network</p>
+        </div>
+      </div>
+      <div class="connection">
+        <span class="status-dot"></span>
+        <span id="connectionText">Connecting...</span>
+      </div>
+    </header>
+
+    <section class="name-card" id="nameCard">
+      <div>
+        <h2>Choose your device name</h2>
+        <p>This name will be visible to other devices.</p>
+      </div>
+      <div class="name-input">
+        <input id="deviceName" maxlength="40" placeholder="e.g. My Laptop">
+        <button id="joinBtn">Join</button>
+      </div>
+    </section>
+
+    <section class="workspace" id="workspace" hidden>
+      <div class="main-panel">
+        <div class="upload-card">
+          <div class="drop-zone" id="dropZone">
+            <div class="upload-icon">↑</div>
+            <h2>Drop files here</h2>
+            <p>or choose files from your device</p>
+            <button class="primary-button" id="chooseFiles">Choose Files</button>
+            <input type="file" id="fileInput" multiple hidden>
+            <div class="file-info">Images, videos, PDFs, documents, ZIPs and more</div>
+          </div>
+        </div>
+
+        <div class="message-card">
+          <div class="section-title">
+            <div>
+              <h2>Send a message</h2>
+              <p>Messages appear instantly on connected devices</p>
+            </div>
+          </div>
+          <div class="message-input">
+            <textarea id="messageInput" placeholder="Type something..." maxlength="5000"></textarea>
+            <button id="sendMessage">Send</button>
+          </div>
+        </div>
+
+        <div class="activity-card">
+          <div class="section-title">
+            <div>
+              <h2>Activity</h2>
+              <p>Recent messages and files</p>
+            </div>
+            <button id="clearActivity" class="text-button">Clear</button>
+          </div>
+          <div id="activity" class="activity">
+            <div class="empty-state"><div>💬</div><p>Nothing shared yet</p></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="devices-card">
+          <div class="section-title">
+            <div>
+              <h2>Devices nearby</h2>
+              <p>Connected to this Wi-Fi server</p>
+            </div>
+            <span class="device-count" id="deviceCount">0</span>
+          </div>
+          <div id="devices" class="devices"></div>
+        </div>
+
+        <div class="privacy-card">
+          <div class="privacy-icon">🔒</div>
+          <div>
+            <strong>Local sharing</strong>
+            <p>Your files are served through this local network server.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

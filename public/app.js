@@ -1,0 +1,252 @@
+const socket = io();
+
+let myDeviceId = null;
+let myDeviceName = null;
+
+const $ = id => document.getElementById(id);
+const nameCard = $("nameCard");
+const workspace = $("workspace");
+const deviceNameInput = $("deviceName");
+const joinBtn = $("joinBtn");
+const connectionText = $("connectionText");
+const statusDot = document.querySelector(".status-dot");
+const devicesContainer = $("devices");
+const deviceCount = $("deviceCount");
+const fileInput = $("fileInput");
+const chooseFiles = $("chooseFiles");
+const dropZone = $("dropZone");
+const messageInput = $("messageInput");
+const sendMessage = $("sendMessage");
+const activity = $("activity");
+const clearActivity = $("clearActivity");
+const toastContainer = $("toastContainer");
+
+const savedName = localStorage.getItem("wishare_device_name");
+if (savedName) deviceNameInput.value = savedName;
+
+socket.on("connect", () => {
+  connectionText.textContent = "Connected";
+  statusDot.style.background = "#64e6a4";
+  statusDot.style.boxShadow = "0 0 10px rgba(100,230,164,.7)";
+  if (myDeviceName) joinNetwork();
+});
+
+socket.on("disconnect", () => {
+  connectionText.textContent = "Disconnected";
+  statusDot.style.background = "#ef6b73";
+  statusDot.style.boxShadow = "0 0 10px rgba(239,107,115,.7)";
+});
+
+joinBtn.addEventListener("click", joinNetwork);
+deviceNameInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") joinNetwork();
+});
+
+function joinNetwork() {
+  const name = deviceNameInput.value.trim();
+  if (!name) return showToast("Please enter a device name.");
+
+  myDeviceName = name;
+  localStorage.setItem("wishare_device_name", name);
+  socket.emit("device:join", name);
+  nameCard.hidden = true;
+  workspace.hidden = false;
+}
+
+socket.on("device:ready", device => {
+  myDeviceId = device.id;
+  myDeviceName = device.name;
+});
+
+socket.on("devices:update", renderDevices);
+
+function renderDevices(devices) {
+  devicesContainer.innerHTML = "";
+  deviceCount.textContent = devices.length;
+
+  if (!devices.length) {
+    devicesContainer.innerHTML = `<div class="empty-state"><div>📡</div><p>No devices connected</p></div>`;
+    return;
+  }
+
+  devices.forEach(device => {
+    const element = document.createElement("div");
+    element.className = "device" + (device.id === myDeviceId ? " me" : "");
+    element.innerHTML = `
+      <div class="device-avatar">${device.id === myDeviceId ? "💻" : "📱"}</div>
+      <div class="device-details">
+        <div class="device-name">${escapeHTML(device.name)}</div>
+        <div class="device-status">${device.id === myDeviceId ? "You" : "Ready to share"}</div>
+      </div>`;
+    devicesContainer.appendChild(element);
+  });
+}
+
+sendMessage.addEventListener("click", sendTextMessage);
+messageInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendTextMessage();
+  }
+});
+
+function sendTextMessage() {
+  const text = messageInput.value.trim();
+  if (!text) return;
+  socket.emit("message:send", { text });
+  messageInput.value = "";
+}
+
+socket.on("message:receive", message => {
+  addMessage(message, false);
+  showToast(`${message.senderName} sent a message`);
+});
+
+socket.on("message:sent", message => addMessage(message, true));
+
+chooseFiles.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", e => {
+  uploadFiles(Array.from(e.target.files));
+  fileInput.value = "";
+});
+
+dropZone.addEventListener("dragover", e => {
+  e.preventDefault();
+  dropZone.classList.add("dragging");
+});
+
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
+
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("dragging");
+  uploadFiles(Array.from(e.dataTransfer.files));
+});
+
+async function uploadFiles(files) {
+  for (const file of files) {
+    try {
+      showToast(`Uploading ${file.name}...`);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const result = await response.json();
+
+      socket.emit("file:send", {
+        fileName: result.file.originalName,
+        fileSize: result.file.size,
+        fileType: result.file.mimeType,
+        fileUrl: result.file.url
+      });
+    } catch (error) {
+      console.error(error);
+      showToast(`Failed to upload ${file.name}`);
+    }
+  }
+}
+
+socket.on("file:receive", file => {
+  addFile(file, false);
+  showToast(`${file.senderName} sent ${file.fileName}`);
+});
+
+socket.on("file:sent", file => addFile(file, true));
+
+function addMessage(message, mine) {
+  removeEmptyState();
+
+  const element = document.createElement("div");
+  element.className = "activity-item";
+  element.innerHTML = `
+    <div class="activity-avatar">💬</div>
+    <div class="activity-content">
+      <div class="activity-header">
+        <span class="activity-name">${mine ? "You" : escapeHTML(message.senderName)}</span>
+        <span class="activity-time">${formatTime(message.time)}</span>
+      </div>
+      <div class="activity-text">${escapeHTML(message.text)}</div>
+    </div>`;
+  activity.prepend(element);
+}
+
+function addFile(file, mine) {
+  removeEmptyState();
+
+  const element = document.createElement("div");
+  element.className = "activity-item";
+  element.innerHTML = `
+    <div class="activity-avatar">📁</div>
+    <div class="activity-content">
+      <div class="activity-header">
+        <span class="activity-name">${mine ? "You" : escapeHTML(file.senderName)}</span>
+        <span class="activity-time">${formatTime(file.time)}</span>
+      </div>
+      <div class="file-item">
+        <div class="file-icon">${getFileIcon(file.fileType)}</div>
+        <div class="activity-content">
+          <div class="file-name">${escapeHTML(file.fileName)}</div>
+          <div class="file-size">${formatBytes(file.fileSize)}</div>
+        </div>
+        <a class="download-button" href="${file.fileUrl}" download="${escapeHTML(file.fileName)}">Download</a>
+      </div>
+    </div>`;
+  activity.prepend(element);
+}
+
+function removeEmptyState() {
+  const empty = activity.querySelector(".empty-state");
+  if (empty) empty.remove();
+}
+
+clearActivity.addEventListener("click", () => {
+  activity.innerHTML = `<div class="empty-state"><div>💬</div><p>Nothing shared yet</p></div>`;
+});
+
+function formatBytes(bytes) {
+  if (!bytes) return "0 Bytes";
+  const units = ["Bytes", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, index)).toFixed(1)} ${units[index]}`;
+}
+
+function formatTime(date) {
+  return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function getFileIcon(type) {
+  if (!type) return "📄";
+  if (type.startsWith("image/")) return "🖼️";
+  if (type.startsWith("video/")) return "🎬";
+  if (type.startsWith("audio/")) return "🎵";
+  if (type.includes("pdf")) return "📕";
+  if (type.includes("zip") || type.includes("compressed")) return "🗜️";
+  if (type.includes("word") || type.includes("document")) return "📝";
+  if (type.includes("spreadsheet") || type.includes("excel")) return "📊";
+  return "📄";
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function showToast(text) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = text;
+  toastContainer.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
