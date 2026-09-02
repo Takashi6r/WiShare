@@ -6,6 +6,51 @@
   <title>WiShare — Local Sharing</title>
   <link rel="stylesheet" href="style.css">
 </head>
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<!-- QR Join Modal -->
+<div class="qr-modal" id="qrModal">
+  <div class="qr-modal-backdrop" id="qrBackdrop"></div>
+
+  <div class="qr-card">
+    <button class="qr-close" id="qrClose" aria-label="Close">
+      &times;
+    </button>
+
+    <div class="qr-icon">⌁</div>
+
+    <h2>Join WiShare</h2>
+
+    <p>
+      Scan this QR code with your phone or another device
+      connected to the same Wi-Fi.
+    </p>
+
+    <div class="qr-code-container">
+      <div id="qrCode"></div>
+    </div>
+
+    <div class="qr-url">
+      <span id="qrUrl">Generating address...</span>
+    </div>
+
+    <div class="qr-actions">
+      <button class="qr-copy-btn" id="copyQrUrl">
+        Copy Link
+      </button>
+
+      <button class="qr-share-btn" id="shareQrUrl">
+        Share Link
+      </button>
+    </div>
+
+    <div class="qr-status">
+      <span class="status-dot"></span>
+      Same Wi-Fi required
+    </div>
+  </div>
+</div>
 <body>
   <main class="app">
     <header class="header">
@@ -84,7 +129,13 @@
           </div>
           <div id="devices" class="devices"></div>
         </div>
-
+        <button class="qr-join-button" id="openQrButton">
+           <span class="qr-button-icon">▦</span>
+          <span>
+            <strong>Join via QR</strong>
+            <small>Scan to connect</small>
+         </span>
+        </button>
         <div class="privacy-card">
           <div class="privacy-icon">🔒</div>
           <div>

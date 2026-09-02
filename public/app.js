@@ -20,6 +20,110 @@ const sendMessage = $("sendMessage");
 const activity = $("activity");
 const clearActivity = $("clearActivity");
 const toastContainer = $("toastContainer");
+// ===============================
+// QR CODE JOIN
+// ===============================
+
+const openQrButton = document.getElementById("openQrButton");
+const qrModal = document.getElementById("qrModal");
+const qrBackdrop = document.getElementById("qrBackdrop");
+const qrClose = document.getElementById("qrClose");
+const qrCode = document.getElementById("qrCode");
+const qrUrl = document.getElementById("qrUrl");
+const copyQrUrl = document.getElementById("copyQrUrl");
+const shareQrUrl = document.getElementById("shareQrUrl");
+
+function getWiShareUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+function generateQRCode() {
+  const url = getWiShareUrl();
+
+  qrUrl.textContent = url;
+  qrCode.innerHTML = "";
+
+  new QRCode(qrCode, {
+    text: url,
+    width: 220,
+    height: 220,
+    colorDark: "#07100e",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+function openQRModal() {
+  generateQRCode();
+
+  qrModal.classList.add("active");
+
+  document.body.classList.add("qr-open");
+}
+
+function closeQRModal() {
+  qrModal.classList.remove("active");
+
+  document.body.classList.remove("qr-open");
+}
+
+openQrButton?.addEventListener("click", openQRModal);
+
+qrClose?.addEventListener("click", closeQRModal);
+
+qrBackdrop?.addEventListener("click", closeQRModal);
+
+copyQrUrl?.addEventListener("click", async () => {
+  const url = getWiShareUrl();
+
+  try {
+    await navigator.clipboard.writeText(url);
+
+    copyQrUrl.textContent = "Copied ✓";
+
+    setTimeout(() => {
+      copyQrUrl.textContent = "Copy Link";
+    }, 1800);
+
+  } catch (error) {
+    console.error("Unable to copy URL:", error);
+  }
+});
+
+shareQrUrl?.addEventListener("click", async () => {
+  const url = getWiShareUrl();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Join my WiShare",
+        text: "Join my WiShare room",
+        url: url
+      });
+    } catch (error) {
+      console.log("Share cancelled");
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(url);
+
+      shareQrUrl.textContent = "Link Copied ✓";
+
+      setTimeout(() => {
+        shareQrUrl.textContent = "Share Link";
+      }, 1800);
+
+    } catch (error) {
+      console.error("Unable to share URL:", error);
+    }
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeQRModal();
+  }
+});
 
 const savedName = localStorage.getItem("wishare_device_name");
 if (savedName) deviceNameInput.value = savedName;
