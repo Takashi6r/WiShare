@@ -180,7 +180,8 @@ function renderDevices(devices) {
       <div class="device-avatar">${device.id === myDeviceId ? "💻" : "📱"}</div>
       <div class="device-details">
         <div class="device-name">${escapeHTML(device.name)}</div>
-        <div class="device-status">${device.id === myDeviceId ? "You" : "Ready to share"}</div>
+        <div class="device-status">${device.id === myDeviceId ? "You • " : "Joined • "}${escapeHTML(device.ip || "Local network")}</div>
+        <div class="device-joined">${device.joinedAt ? `Joined ${formatTime(device.joinedAt)}` : "Online now"}</div>
       </div>`;
     devicesContainer.appendChild(element);
   });
@@ -353,4 +354,100 @@ function showToast(text) {
   toast.textContent = text;
   toastContainer.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
+}
+// ===============================
+// WI-FI DEVICES + ROOM MEMBERS
+// ===============================
+const openNetworkButton = $("openNetworkButton");
+const networkModal = $("networkModal");
+const networkBackdrop = $("networkBackdrop");
+const networkClose = $("networkClose");
+const refreshNetwork = $("refreshNetwork");
+const networkDevicesContainer = $("networkDevices");
+const networkDeviceCount = $("networkDeviceCount");
+const networkSubnet = $("networkSubnet");
+
+function openNetworkModal() {
+  networkModal.classList.add("active");
+  networkModal.setAttribute("aria-hidden", "false");
+  scanNetwork();
+}
+
+function closeNetworkModal() {
+  networkModal.classList.remove("active");
+  networkModal.setAttribute("aria-hidden", "true");
+}
+
+openNetworkButton?.addEventListener("click", openNetworkModal);
+networkClose?.addEventListener("click", closeNetworkModal);
+networkBackdrop?.addEventListener("click", closeNetworkModal);
+refreshNetwork?.addEventListener("click", scanNetwork);
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeNetworkModal();
+});
+
+async function scanNetwork() {
+  if (!networkDevicesContainer) return;
+
+  networkDevicesContainer.innerHTML = `
+    <div class="network-loading">
+      <span class="spinner"></span>
+      Scanning local network...
+    </div>`;
+  refreshNetwork.disabled = true;
+  refreshNetwork.textContent = "Scanning...";
+
+  try {
+    const response = await fetch("/api/network-info", { cache: "no-store" });
+    if (!response.ok) throw new Error("Network scan failed");
+
+    const result = await response.json();
+    const found = Array.isArray(result.devices) ? result.devices : [];
+
+    networkDeviceCount.textContent = found.length;
+    networkSubnet.textContent = result.subnet || "Unknown";
+    renderNetworkDevices(found);
+  } catch (error) {
+    console.error(error);
+    networkDeviceCount.textContent = "0";
+    networkSubnet.textContent = "Unavailable";
+    networkDevicesContainer.innerHTML = `
+      <div class="network-empty">
+        <div>⚠️</div>
+        <strong>Could not scan the network</strong>
+        <p>Make sure WiShare is running on the local computer and try again.</p>
+      </div>`;
+  } finally {
+    refreshNetwork.disabled = false;
+    refreshNetwork.textContent = "↻ Refresh";
+  }
+}
+
+function renderNetworkDevices(list) {
+  networkDevicesContainer.innerHTML = "";
+
+  if (!list.length) {
+    networkDevicesContainer.innerHTML = `
+      <div class="network-empty">
+        <div>📡</div>
+        <strong>No devices detected</strong>
+        <p>Your router may have device isolation enabled.</p>
+      </div>`;
+    return;
+  }
+
+  list.forEach(device => {
+    const element = document.createElement("div");
+    element.className = "network-device" + (device.isServer ? " network-server" : "");
+    element.innerHTML = `
+      <div class="network-device-icon">${device.isServer ? "💻" : "📱"}</div>
+      <div class="network-device-details">
+        <div class="network-device-name">${escapeHTML(device.name || "Unknown device")}</div>
+        <div class="network-device-ip">IP: ${escapeHTML(device.ip)}${device.mac ? ` • MAC: ${escapeHTML(device.mac)}` : ""}</div>
+        <div class="network-device-source">${escapeHTML(device.nameSource || "")}</div>
+      </div>
+      <div class="network-device-badge">${device.isServer ? "This PC" : "On Wi-Fi"}</div>`;
+    networkDevicesContainer.appendChild(element);
+  });
 }

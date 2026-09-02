@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TuiShare — Local Sharing</title>
   <link rel="stylesheet" href="style.css">
-</head>
-<!-- QR Code Library -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
-<!-- QR Join Modal -->
-<div class="qr-modal" id="qrModal">
+</head>
+<body>
+  <!-- QR Join Modal -->
+  <div class="qr-modal" id="qrModal">
   <div class="qr-modal-backdrop" id="qrBackdrop"></div>
 
   <div class="qr-card">
@@ -50,8 +49,8 @@
       Same Wi-Fi required
     </div>
   </div>
-</div>
-<body>
+  </div>
+
   <main class="app">
     <header class="header">
       <div class="brand">
@@ -122,13 +121,23 @@
         <div class="devices-card">
           <div class="section-title">
             <div>
-              <h2>Devices nearby</h2>
-              <p>Connected to this Wi-Fi server</p>
+              <h2>Room Members</h2>
+              <p>People who joined this WiShare room</p>
             </div>
             <span class="device-count" id="deviceCount">0</span>
           </div>
           <div id="devices" class="devices"></div>
         </div>
+
+        <button class="network-button" id="openNetworkButton">
+          <span class="network-button-icon">⌁</span>
+          <span>
+            <strong>Wi-Fi Devices</strong>
+            <small>See devices on this network</small>
+          </span>
+          <span class="network-chevron">›</span>
+        </button>
+
         <button class="qr-join-button" id="openQrButton">
            <span class="qr-button-icon">▦</span>
           <span>
@@ -146,6 +155,29 @@
       </aside>
     </section>
   </main>
+
+  <div class="network-modal" id="networkModal" aria-hidden="true">
+    <div class="network-modal-backdrop" id="networkBackdrop"></div>
+    <div class="network-card">
+      <button class="network-close" id="networkClose" aria-label="Close">&times;</button>
+      <div class="network-heading">
+        <div class="network-heading-icon">📡</div>
+        <div>
+          <h2>Wi-Fi Devices</h2>
+          <p>Devices detected on the same local network</p>
+        </div>
+      </div>
+      <div class="network-summary">
+        <div><span id="networkDeviceCount">0</span><small>devices found</small></div>
+        <div><span id="networkSubnet">Detecting...</span><small>network</small></div>
+        <button id="refreshNetwork" class="network-refresh">↻ Refresh</button>
+      </div>
+      <div id="networkDevices" class="network-devices">
+        <div class="network-loading"><span class="spinner"></span>Scanning local network...</div>
+      </div>
+      <div class="network-note">💡 Some routers hide devices from LAN discovery. The list shows devices that respond to local network discovery.</div>
+    </div>
+  </div>
 
   <div id="toastContainer" class="toast-container"></div>
   <script src="/socket.io/socket.io.js"></script>
